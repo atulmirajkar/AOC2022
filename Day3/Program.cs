@@ -1,10 +1,13 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Text;
+﻿using System.Diagnostics;
 using Util;
-// See https://aka.ms/new-console-template for more information
+
+Stopwatch watch = new Stopwatch();
+watch.Start();
 List<string> inputList = FileUtil.ReadFile("./data.txt");
 //part1(inputList);
 part2(inputList);
+watch.Stop();
+Console.WriteLine("Elapsed Time:"+watch.ElapsedMilliseconds+" ms");
 /*
 ruck 2 comp
 1 item type per rucksack
