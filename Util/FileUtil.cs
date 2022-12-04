@@ -22,5 +22,14 @@ namespace Util
             }
             return strList;
         }
+
+        public static async IAsyncEnumerable<string> ReadFileLineAsync(string filePath){
+            using(var sr= File.OpenText(filePath)){
+                string s = null;
+                while((s = await sr.ReadLineAsync()) !=null){
+                    yield return s;
+                }
+            }
+        }
     }
 }
