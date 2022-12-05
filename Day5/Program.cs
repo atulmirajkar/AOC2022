@@ -1,6 +1,24 @@
 ﻿using System.Text.RegularExpressions;
 using Util;
 
+/*
+split data and stack input into different files
+stack.txt
+            [J]         [B]     [T]    
+        [M] [L]     [Q] [L] [R]    
+        [G] [Q]     [W] [S] [B] [L]
+[D]     [D] [T]     [M] [G] [V] [P]
+[T]     [N] [N] [N] [D] [J] [G] [N]
+[W] [H] [H] [S] [C] [N] [R] [W] [D]
+[N] [P] [P] [W] [H] [H] [B] [N] [G]
+[L] [C] [W] [C] [P] [T] [M] [Z] [W]
+
+clean up data to be the following
+data.txt
+ 6  6  5
+ 2  5  9
+ 8  9  1
+*/
 var stackArr = readStackData();
 List<string> dataList = FileUtil.ReadFile("./data.txt");
 foreach (var data in dataList)
