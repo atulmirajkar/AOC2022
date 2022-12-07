@@ -13,14 +13,6 @@ namespace AOC2022
     public class FileSystem
     {
         // First we need to build the file structure in memory
-        //     node{
-        //         name
-        //         type    file or dir
-        //         size    populated if type is file
-        //         node * dirs    
-        //         node * files
-
-        //     }
         public class Node
         {
             public string name;
@@ -48,28 +40,54 @@ namespace AOC2022
 
             public string getParentDirName(Node node)
             {
-                if(node.name == "/"){
+                if (node.name == "/")
+                {
                     return "";
                 }
                 //  /c/d/e/f
                 //  01234567
                 //remove f 
                 int lastSlashIdx = node.name.LastIndexOf("/");
-                if(lastSlashIdx==0){
+                if (lastSlashIdx == 0)
+                {
                     return "/";
                 }
                 return node.name.Substring(0, lastSlashIdx);
             }
         }
 
-        public void PrintFS()
+        //we will also index the node with the fileName for easy access
+        Dictionary<string, Node> nodeIndex = new Dictionary<string, Node>();
+
+        Node? rootNode = null;
+        private void getDirNearestToSize(Node node, Int64 minSizeToDelete, ref Node smallestDirFound)
         {
-            if (rootNode == null)
+            if (node == null)
             {
-                Console.WriteLine("FS empty");
                 return;
             }
-            printFSRec(rootNode, "");
+
+            if (node.type == FileType.File)
+            {
+                return;
+            }
+
+            if (node.size >= minSizeToDelete && node.size < smallestDirFound.size)
+            {
+                smallestDirFound = node;
+            }
+            foreach (Node innerNode in node.nodeList)
+            {
+                getDirNearestToSize(innerNode, minSizeToDelete, ref smallestDirFound);
+            }
+        }
+        private bool isCommandLine(string command)
+        {
+            if (command.Split(" ")[0] == "$")
+            {
+                return true;
+            }
+            return false;
         }
         private void printFSRec(Node node, string indent)
         {
@@ -83,110 +101,19 @@ namespace AOC2022
                 return;
             }
 
-            Console.WriteLine(indent + "dir " + node.name + ", Size: "+ node.size);
+            Console.WriteLine(indent + "dir " + node.name + ", Size: " + node.size);
             foreach (Node innerNode in node.nodeList)
             {
-                printFSRec(innerNode, indent+"\t");
+                printFSRec(innerNode, indent + "\t");
             }
         }
-        //we will also index the node with the fileName for easy access
-        Dictionary<string, Node> nodeIndex = new Dictionary<string, Node>();
-
-        Node? rootNode = null;
-
-        public void GetSmallestDir(int totalDiskSpace, int freeSpaceNeeded){
-            if(rootNode == null){
-                return;
-            }
-            if(rootNode.size == 0){
-                ReCalcSize();
-            }
-            Int64 freeSpaceAvail = (totalDiskSpace-rootNode.size);
-            if(freeSpaceAvail<0){
-                throw new ArgumentException();
-            }
-            Int64 minSizeToDelete = freeSpaceNeeded -  freeSpaceAvail;
-            Node smallestDirFound = rootNode;
-            Console.WriteLine("MinSizeToDelete:"+minSizeToDelete);
-            GetDirNearestToSize(rootNode, minSizeToDelete, ref smallestDirFound);
-            printFSRec(smallestDirFound,"");
-        }
-
-        public void GetDirNearestToSize(Node node, Int64 minSizeToDelete, ref Node smallestDirFound){
-            if(node == null){
-                return;
-            }
-            
-            if(node.type == FileType.File){
-                return;
-            }
-
-            if(node.size >= minSizeToDelete && node.size<smallestDirFound.size){
-                smallestDirFound = node;
-            }
-            foreach(Node innerNode in node.nodeList){
-                GetDirNearestToSize(innerNode, minSizeToDelete, ref smallestDirFound);
-            }
-        }
-        public bool isCommandLine(string command)
+        private string getInnerNodeName(string parentName, string currName)
         {
-            if (command.Split(" ")[0] == "$")
+            if (parentName == "/")
             {
-                return true;
+                return parentName + currName;
             }
-            return false;
-        }
-
-        public Int64 GetTotalAtmostSize(Int64 size)
-        {
-            Node? node = rootNode;
-            if(node == null){
-                return 0;
-            }
-            return GetTotalAtmostSizeRec(node, size);
-        }
-
-        /*
-            c
-                a 11000
-                    b 3000
-                    d 8000 
-        */
-        private Int64 GetTotalAtmostSizeRec(Node node, Int64 size)
-        {
-            if (node == null)
-            {
-                return 0;
-            }
-            if (node.type == FileType.File)
-            {
-                return 0;
-            }
-
-            Int64 result = 0;
-            if (node.size <= size)
-            {
-                result += node.size;
-            }
-            foreach (Node innerNode in node.nodeList)
-            {
-                if (innerNode.type == FileType.File)
-                {
-                    continue;
-                }
-
-                result += GetTotalAtmostSizeRec(innerNode, size);
-            }
-            return result;
-        }
-        public void ReCalcSize()
-        {
-            Node? node = rootNode;
-            if (node == null)
-            {
-                return;
-            }
-            calcSizeRec(node);
+            return parentName + "/" + currName;
         }
 
         private Int64 calcSizeRec(Node node)
@@ -210,12 +137,94 @@ namespace AOC2022
             return size;
         }
 
-        private string getInnerNodeName(string parentName, string currName){
-            if(parentName == "/"){
-                return parentName + currName;
+        private Int64 getTotalAtmostSizeRec(Node node, Int64 size)
+        {
+            if (node == null)
+            {
+                return 0;
             }
-            return parentName + "/" + currName;
+            if (node.type == FileType.File)
+            {
+                return 0;
+            }
+
+            Int64 result = 0;
+            if (node.size <= size)
+            {
+                result += node.size;
+            }
+            foreach (Node innerNode in node.nodeList)
+            {
+                if (innerNode.type == FileType.File)
+                {
+                    continue;
+                }
+
+                result += getTotalAtmostSizeRec(innerNode, size);
+            }
+            return result;
         }
+        public void PrintFS()
+        {
+            if (rootNode == null)
+            {
+                Console.WriteLine("FS empty");
+                return;
+            }
+            printFSRec(rootNode, "");
+        }
+        
+        //public methods
+        public void GetSmallestDir(int totalDiskSpace, int freeSpaceNeeded)
+        {
+            if (rootNode == null)
+            {
+                return;
+            }
+            if (rootNode.size == 0)
+            {
+                ReCalcSize();
+            }
+            Int64 freeSpaceAvail = (totalDiskSpace - rootNode.size);
+            if (freeSpaceAvail < 0)
+            {
+                throw new ArgumentException();
+            }
+            Int64 minSizeToDelete = freeSpaceNeeded - freeSpaceAvail;
+            Node smallestDirFound = rootNode;
+            Console.WriteLine("MinSizeToDelete:" + minSizeToDelete);
+            getDirNearestToSize(rootNode, minSizeToDelete, ref smallestDirFound);
+            printFSRec(smallestDirFound, "");
+        }
+
+
+        public Int64 GetTotalAtmostSize(Int64 size)
+        {
+            Node? node = rootNode;
+            if (node == null)
+            {
+                return 0;
+            }
+            return getTotalAtmostSizeRec(node, size);
+        }
+
+        /*
+            c
+                a 11000
+                    b 3000
+                    d 8000 
+        */
+        public void ReCalcSize()
+        {
+            Node? node = rootNode;
+            if (node == null)
+            {
+                return;
+            }
+            calcSizeRec(node);
+        }
+
+
         public void BuildFileSystem(List<string> commandList)
         {
             Node? currentNode = null;
@@ -286,7 +295,7 @@ namespace AOC2022
                     {
                         // string dirName = comArr[1];
                         // currentNode.AddNode(new Node(dirName, FileType.Dir, 0));
-                        //do nothing - will dow work only when cd <dir>
+                        //do nothing - will do work only when cd <dir>
                     }
                     else
                     {
