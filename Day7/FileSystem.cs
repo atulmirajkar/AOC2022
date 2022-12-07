@@ -1,7 +1,3 @@
-using System.Security.Cryptography;
-using System.Reflection.Emit;
-using System;
-
 namespace AOC2022
 {
     public enum FileType
@@ -72,7 +68,12 @@ namespace AOC2022
                 return;
             }
 
-            if (node.size >= minSizeToDelete && node.size < smallestDirFound.size)
+            //no point in exploring folders which have size smaller than minimum size
+            if(node.size < minSizeToDelete){
+                return;
+            }
+
+            if (node.size < smallestDirFound.size)
             {
                 smallestDirFound = node;
             }
@@ -164,6 +165,8 @@ namespace AOC2022
             }
             return result;
         }
+
+        //public methods
         public void PrintFS()
         {
             if (rootNode == null)
@@ -174,7 +177,6 @@ namespace AOC2022
             printFSRec(rootNode, "");
         }
         
-        //public methods
         public void GetSmallestDir(int totalDiskSpace, int freeSpaceNeeded)
         {
             if (rootNode == null)
