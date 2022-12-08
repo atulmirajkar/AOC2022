@@ -69,7 +69,6 @@ int part1(int[,] arr)
     {
         for (int i = 0; i < nr; i++)
         {
-
             if (j == nc - 1 || arr[i, j] > maxFromRight[i])
             {
                 maxFromRight[i] = arr[i, j];
@@ -83,7 +82,6 @@ int part1(int[,] arr)
     {
         for (int j = 0; j < nc; j++)
         {
-            //from bottom
             if (i == nr - 1 || arr[i, j] > maxFromBottom[j])
             {
                 maxFromBottom[j] = arr[i, j];
@@ -98,7 +96,6 @@ void updateCount(int i, int j, HashSet<string> set, ref int count)
 {
     if (!set.Contains(i + ":" + j))
     {
-        // Console.WriteLine(i+":"+j);
         set.Add(i + ":" + j);
         count++;
     }
