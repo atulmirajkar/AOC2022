@@ -18,9 +18,6 @@
     dist>1 that means we need to move tail
     If in the same row - move rowwise
     if in the same col - move colwise
-
-
-
 */
 using Util;
 
@@ -96,6 +93,7 @@ void DisplayMove(Tuple<int, int> head, Tuple<int, int> tail)
 
 Tuple<int, int> moveTail(Tuple<int, int> head, Tuple<int, int> tail)
 {
+    //if head not far, no need to move
     if (!isMoreThanOne(head, tail))
     {
         return tail;
@@ -125,6 +123,8 @@ Tuple<int, int> moveTail(Tuple<int, int> head, Tuple<int, int> tail)
             return Tuple.Create(tail.Item1 - 1, tail.Item2);
         }
     }
+
+    //diagonals
 
     int xDist = head.Item1 - tail.Item1;
     int yDist = head.Item2 - tail.Item2;
