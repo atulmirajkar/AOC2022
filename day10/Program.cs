@@ -128,12 +128,13 @@ void part2(List<string> inputList){
                pixelVal = '#';
             }
 
-            //Console.WriteLine(cycle);
+            //no need of this - there are only 240 cycles in the input
             if(cycle%240==1){
                 PrintCRT(crt);
                 crt = new char[6,40];
             }
 
+            //no need of %6 - there are only 240 cycles in the input
             crt![crtPos.Item1%6,crtPos.Item2] = pixelVal;
         }
         if(isAdd){
@@ -166,6 +167,7 @@ bool isSpriteOnPixel(Tuple<int, int> crtPos, int x){
 
     int currPixel = (crtPos.Item1*40) + crtPos.Item2; //0 based
 
+    //x is adjusted by the input between 0 and 40 - that is unfortunate
     if(currPixel%40>=x-1 && currPixel%40<=x+1){
         return true;
     }
@@ -175,7 +177,7 @@ bool isSpriteOnPixel(Tuple<int, int> crtPos, int x){
 //0 based
 //can return row > 6
 Tuple<int, int> cycleToCRTPos(int cycle){
-    int row = (cycle-1) / 40;
+    int row = ((cycle-1) / 40);
     int col = ((cycle-1) % 40);
     return Tuple.Create(row, col);
 }
