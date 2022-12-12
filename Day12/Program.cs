@@ -47,7 +47,7 @@ for (int i = 0; i < heightArr.GetLength(0); i++)
     }
     Console.WriteLine();
 }
-//Console.WriteLine(part1(heightArr, (startX, startY), (endX, endY)));
+Console.WriteLine(part1(heightArr, (startX, startY), (endX, endY), false));
 Console.WriteLine(part2(heightArr, (endX, endY)));
 
 /*
@@ -61,35 +61,18 @@ Console.WriteLine(part2(heightArr, (endX, endY)));
 */
 int part2(int[,] heightArr, (int, int) endPos)
 {
-    int dist = part1(heightArr, endPos, (-1,-1), true);
-
+    int dist = part1(heightArr, endPos, (-1, -1), true);
     return dist;
-
 }
 
-// List<(int, int)> getLowestList(int[,] heightArr)
-// {
-//     List<(int, int)> resultList = new List<(int, int)>();
-//     for (int i = 0; i < heightArr.GetLength(0); i++)
-//     {
-//         for (int j = 0; j < heightArr.GetLength(1); j++)
-//         {
-//             if (heightArr[i, j] == 0)
-//             {
-//                 resultList.Add((i, j));
-//             }
-//         }
-//     }
-//     return resultList;
-// }
 /*
 Using BFS
 */
 int part1(int[,] heightArr, (int, int) startPos, (int, int) endPos, bool isPart2)
 {
     //apparently tuples implement IComparable
-    HashSet<(int, int)> visited = new HashSet<(int, int)>();
-    Queue<(int, int)> queue = new Queue<(int, int)>();
+    HashSet<(int, int)> visited = new();
+    Queue<(int, int)> queue = new();
     queue.Enqueue(startPos);
     visited.Add(startPos);
 
@@ -108,7 +91,7 @@ int part1(int[,] heightArr, (int, int) startPos, (int, int) endPos, bool isPart2
             for (int j = 0; j < 4; j++)
             {
                 var nextPos = (currPos.Item1 + dir[j, 0], currPos.Item2 + dir[j, 1]);
-                if (visited.Contains(nextPos) || !canTakeDir(heightArr, nextPos, currPos))
+                if (visited.Contains(nextPos) || !canTakeDir(heightArr, nextPos, currPos, isPart2))
                 {
                     continue;
                 }
@@ -145,7 +128,8 @@ int part1(int[,] heightArr, (int, int) startPos, (int, int) endPos, bool isPart2
 
 bool isEndFound(int[,] heightArr, (int, int) currPos, (int, int) endPos, bool isPart2)
 {
-    if(isPart2 && heightArr[currPos.Item1, currPos.Item2] == 0){
+    if (isPart2 && heightArr[currPos.Item1, currPos.Item2] == 0)
+    {
         return true;
     }
     if (currPos == endPos)
@@ -168,7 +152,7 @@ void PrintHelper(int[,] memo)
     }
 }
 
-bool canTakeDir(int[,] heightArr, (int, int) currPos, (int, int) prevPos)
+bool canTakeDir(int[,] heightArr, (int, int) currPos, (int, int) prevPos, bool isPart2)
 {
     //check out of bound
     int nr = heightArr.GetLength(0);
@@ -178,10 +162,15 @@ bool canTakeDir(int[,] heightArr, (int, int) currPos, (int, int) prevPos)
         return false;
     }
 
+
     //check if currPos <= prevPos + 1
     int currVal = heightArr[currPos.Item1, currPos.Item2];
     int prevVal = heightArr[prevPos.Item1, prevPos.Item2];
-    if (currVal <= (prevVal + 1))
+    if (isPart2 && currVal <= prevVal)
+    {
+        return true;
+    }
+    else if (currVal <= (prevVal + 1))
     {
         return true;
     }
