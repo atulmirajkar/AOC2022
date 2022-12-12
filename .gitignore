@@ -33,4 +33,6 @@ msbuild.wrn
 .vs/
 
 *data.*
+*testdata*
+*debug*
 *.txt
