@@ -17,15 +17,11 @@ int part2(List<string> inputList) {
     Console.WriteLine(minX + ":" + maxX + ":" + minY + ":" + maxY);
 
     //shift the array
-    //int subX = minX;
     int subX = 0;
     int subY = 0;
-    //int xSize = maxX - minX + 1;
-    // int xSize = maxX + 1;
 
+    //add 500 to see if all Os fit
     int xSize = maxX + 500 + 1;
-
-    // int ySize = maxY - minY + 1;
 
     //add infinite horizontal line
     maxY += 2;
@@ -127,10 +123,7 @@ void simulatePathPart2(char[,] c, int startX, int startY, ref bool isOverFlow) {
                 break;
             }
         }
-        // if (y == 0) {
-        //     isOverFlow = true;
-        //     break;
-        // }
+
         bool moved = false;
         if (y + 1 <= maxY) {
             if (x - 1 >= 0 && c[y + 1, x - 1] == '\0') {
