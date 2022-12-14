@@ -1,10 +1,48 @@
 ﻿
+using System.Runtime.CompilerServices;
+
 using Util;
 
-List<string> inputList = FileUtil.ReadFile("./testdata.txt");
+List<string> inputList = FileUtil.ReadFile("./data.txt");
 
 
-Console.WriteLine(part1(inputList));
+Console.WriteLine(part2(inputList));
+int part2(List<string> inputList) {
+    int minX = int.MaxValue;
+    int maxX = int.MinValue;
+    int minY = int.MaxValue;
+    int maxY = int.MinValue;
+
+    List<List<(int, int)>> allPath = new();
+    foreach (string path in inputList) {
+        allPath.Add(getPathPoint(path, ref minX, ref maxX, ref minY, ref maxY));
+    }
+    Console.WriteLine(minX + ":" + maxX + ":" + minY + ":" + maxY);
+
+    //shift the array
+    int subX = minX;
+    // int subY = minY; //should be 0
+    int subY = 0;
+    int xSize = maxX - minX + 1;
+    // int ySize = maxY - minY + 1;
+
+    //add infinite horizontal line
+    maxY += 2;
+    int ySize = maxY + 1;
+    char[,] caveArr = new char[ySize, xSize];
+
+    foreach (var path in allPath) {
+        for (int i = 1; i < path.Count; i++) {
+            addLine(caveArr, path[i - 1], path[i], subX, subY);
+        }
+    }
+
+    addLine(caveArr, (subX, maxY), (maxX, maxY), subX, subY);
+
+
+    PrintCave(caveArr);
+    return 0;
+}
 /*
     x - dist to right
     y - down
@@ -47,16 +85,63 @@ int part1(List<string> inputList) {
     }
 
     PrintCave(caveArr);
-    return 0;
+
+    int count = 0;
+    bool overFlow = false;
+
+    while (true) {
+        simulatePath(caveArr, 500 - subX, 0, ref overFlow);
+        if (overFlow) {
+            break;
+        }
+        count++;
+    }
+    Console.WriteLine();
+    PrintCave(caveArr);
+
+    return count;
 }
 
-// void simulatePath(char[,] c, int startX, int startY) {
-//     int x = startX;
-//     int y = startY;
-//     while (x>=0 && x<c.GetLength(1) && y>=0 && y<c.GetLength(0)){
-//         if(c[y,x])
-//     }
-// }
+void simulatePath(char[,] c, int startX, int startY, ref bool isOverFlow) {
+    int x = startX;
+    int y = startY;
+    int maxX = c.GetLength(1) - 1;
+    int maxY = c.GetLength(0) - 1;
+    // while (x >= 0 && x <= maxX && y >= 0 && y <= maxY) {
+    while (true) {
+        while (y + 1 <= maxY) {
+            if (c[y + 1, x] == '\0') {
+                y++;
+            } else {
+                break;
+            }
+        }
+        if (y == maxY) {
+            isOverFlow = true;
+            break;
+        }
+        bool moved = false;
+        if (y + 1 <= maxY) {
+            if (x - 1 >= 0 && c[y + 1, x - 1] == '\0') {
+                moved = true;
+                y++;
+                x--;
+            } else if (x + 1 <= maxX && c[y + 1, x + 1] == '\0') {
+                moved = true;
+                y++;
+                x++;
+            }
+        }
+        if (x == 0 || x == maxX) {
+            isOverFlow = true;
+            break;
+        }
+        if (!moved) {
+            c[y, x] = 'O';
+            break;
+        }
+    }
+}
 
 void PrintCave(char[,] caveArr) {
     Console.WriteLine();
@@ -73,7 +158,6 @@ void PrintCave(char[,] caveArr) {
 }
 
 void addLine(char[,] caveArr, (int, int) start, (int, int) end, int subX, int subY) {
-    Console.WriteLine(start.Item1 + ":" + start.Item2 + " - " + end.Item1 + ":" + end.Item2);
     //if same x value  - going down
     //|
     //|
