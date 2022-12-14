@@ -1,5 +1,4 @@
-﻿using System;
-using System.Text;
+﻿using System.Text;
 
 using Util;
 /*
@@ -55,7 +54,9 @@ int part1(List<string> inputList) {
         Console.WriteLine(secondStr);
 
         PacketComparer pc = new PacketComparer();
-        if (pc.Compare(p1, p2) < 0) {
+        int c = pc.Compare(p1, p2);
+        Console.WriteLine("Compare:" + c);
+        if (c < 0) {
             count += pairIdx;
             Console.WriteLine($"IsSmaller - {pairIdx}");
         } else {
@@ -151,7 +152,6 @@ int getMatching(string str, int startIdx) {
 
 
 class PacketComparer : IComparer<Packet> {
-
     public int Compare(Packet? x, Packet? y) {
         //if both have finished
         if (x == null && y == null) {
@@ -168,19 +168,16 @@ class PacketComparer : IComparer<Packet> {
             return 1;
         }
 
-
-
-
         //If both values are integers, the lower integer should come first.
         //the inputs are the same integer; continue checking the next part of the input.
-        if (x.Val != null && y.Val != null) {
-            if (x.Val < y.Val) {
-                return -1;
-            }
+        if (x.InnerPacket == null && y.InnerPacket == null) {
             if (x.Val == y.Val) {
                 return Compare(x.NextPacket, y.NextPacket);
             }
-            if (x.Val > y.Val) {
+            if (x.Val == null || x.Val < y.Val) {
+                return -1;
+            }
+            if (y.Val == null || x.Val > y.Val) {
                 return 1;
             }
         }
@@ -210,7 +207,7 @@ class PacketComparer : IComparer<Packet> {
         //For example, if comparing [0,0,0] and 2
         //, convert the right value to [2] (a list containing 2); 
         //the result is then found by instead comparing [0,0,0] and [2].
-        if (x.Val != null && y.InnerPacket != null) {
+        if (x.InnerPacket == null && y.InnerPacket != null) {
             Packet tempPacket = new Packet();
             tempPacket.NextPacket = x.NextPacket;
             tempPacket.InnerPacket = new Packet();
@@ -218,7 +215,7 @@ class PacketComparer : IComparer<Packet> {
             return Compare(tempPacket, y);
         }
 
-        if (x.InnerPacket != null && y.Val != null) {
+        if (x.InnerPacket != null && y.InnerPacket == null) {
             Packet tempPacket = new Packet();
             tempPacket.NextPacket = y.NextPacket;
             tempPacket.InnerPacket = new Packet();
@@ -229,15 +226,15 @@ class PacketComparer : IComparer<Packet> {
 
         //[] - x.val = null and x.innerList = null
 
-        if (x.Val == null && x.InnerPacket == null && y.Val == null && y.InnerPacket == null) {
-            return 0;
-        }
-        if (x.Val == null && x.InnerPacket == null) {
-            return -1;
-        }
-        if (y.Val == null && y.InnerPacket == null) {
-            return 1;
-        }
+        // if (x.Val == null && x.InnerPacket == null && y.Val == null && y.InnerPacket == null) {
+        //     return 0;
+        // }
+        // if (x.Val == null && x.InnerPacket == null) {
+        //     return -1;
+        // }
+        // if (y.Val == null && y.InnerPacket == null) {
+        //     return 1;
+        // }
 
         throw new ArgumentException();
     }
