@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Runtime.InteropServices.ComTypes;
+using System.Text;
 
 using Util;
 /*
@@ -30,8 +31,54 @@ Tuple<Packet, Packet>
 
 */
 List<string> inputList = FileUtil.ReadFile("./data.txt");
-Console.WriteLine(part1(inputList));
+// Console.WriteLine(part1(inputList));
+Console.WriteLine(part2(inputList));
 
+int part2(List<string> inputList) {
+    int i = 0;
+    List<Packet> packetList = new List<Packet>();
+    while (i < inputList.Count) {
+        if (String.IsNullOrEmpty(inputList[i])) {
+            i++;
+            continue;
+        }
+        // Console.WriteLine(inputList[i]);
+        Packet? p = ParseAndBuildPacket(inputList[i]);  //dont send the brackets 
+        if (p == null) {
+            continue;
+        }
+
+        packetList.Add(p);
+        i++;//skip new line
+    }
+    //add two more packets
+    // [[2]]
+    // [[6]]
+    Packet p1 = new Packet();
+    p1.InnerPacket = new Packet();
+    p1.InnerPacket.InnerPacket = new Packet();
+    p1.InnerPacket.InnerPacket.Val = 2;
+
+    Packet p2 = new Packet();
+    p2.InnerPacket = new Packet();
+    p2.InnerPacket.InnerPacket = new Packet();
+    p2.InnerPacket.InnerPacket.Val = 6;
+
+    packetList.Add(p1);
+    packetList.Add(p2);
+    PacketComparer pc = new PacketComparer();
+    packetList.Sort(pc);
+
+    int pr = 1;
+    for (int j = 0; j < packetList.Count; j++) {
+        Console.WriteLine(DisplayPacket(packetList[j]));
+        if (pc.Compare(packetList[j], p1) == 0 || pc.Compare(packetList[j], p2) == 0) {
+            pr *= (j + 1);
+        }
+    }
+    return pr;
+
+}
 int part1(List<string> inputList) {
     int i = 0;
     int count = 0;
