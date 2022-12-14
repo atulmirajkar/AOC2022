@@ -1,7 +1,4 @@
-﻿
-using System.Runtime.CompilerServices;
-
-using Util;
+﻿using Util;
 
 List<string> inputList = FileUtil.ReadFile("./data.txt");
 
@@ -20,10 +17,14 @@ int part2(List<string> inputList) {
     Console.WriteLine(minX + ":" + maxX + ":" + minY + ":" + maxY);
 
     //shift the array
-    int subX = minX;
-    // int subY = minY; //should be 0
+    //int subX = minX;
+    int subX = 0;
     int subY = 0;
-    int xSize = maxX - minX + 1;
+    //int xSize = maxX - minX + 1;
+    // int xSize = maxX + 1;
+
+    int xSize = maxX + 500 + 1;
+
     // int ySize = maxY - minY + 1;
 
     //add infinite horizontal line
@@ -37,11 +38,23 @@ int part2(List<string> inputList) {
         }
     }
 
-    addLine(caveArr, (subX, maxY), (maxX, maxY), subX, subY);
-
-
+    addLine(caveArr, (subX, maxY), (xSize - 1, maxY), subX, subY);
     PrintCave(caveArr);
-    return 0;
+
+    int count = 0;
+    bool overFlow = false;
+
+    while (true) {
+        simulatePathPart2(caveArr, 500 - subX, 0, ref overFlow);
+        if (overFlow) {
+            break;
+        }
+        count++;
+    }
+    Console.WriteLine();
+    PrintCave(caveArr);
+
+    return count + 1;
 }
 /*
     x - dist to right
@@ -101,6 +114,46 @@ int part1(List<string> inputList) {
 
     return count;
 }
+void simulatePathPart2(char[,] c, int startX, int startY, ref bool isOverFlow) {
+    int x = startX;
+    int y = startY;
+    int maxX = c.GetLength(1) - 1;
+    int maxY = c.GetLength(0) - 1;
+    while (true) {
+        while (y + 1 <= maxY) {
+            if (c[y + 1, x] == '\0') {
+                y++;
+            } else {
+                break;
+            }
+        }
+        // if (y == 0) {
+        //     isOverFlow = true;
+        //     break;
+        // }
+        bool moved = false;
+        if (y + 1 <= maxY) {
+            if (x - 1 >= 0 && c[y + 1, x - 1] == '\0') {
+                moved = true;
+                y++;
+                x--;
+            } else if (x + 1 <= maxX && c[y + 1, x + 1] == '\0') {
+                moved = true;
+                y++;
+                x++;
+            }
+        }
+
+        if (!moved) {
+            c[y, x] = 'O';
+            if (y == 0 && x == 500) {
+                isOverFlow = true;
+            }
+            break;
+        }
+    }
+}
+
 
 void simulatePath(char[,] c, int startX, int startY, ref bool isOverFlow) {
     int x = startX;
