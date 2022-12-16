@@ -84,26 +84,49 @@ int part2(List<SBPair> pairList, int maxCo) {
     foreach (var pair in pairList) {
         beaconSet.Add(pair.bPoint);
     }
-    List<(int, int)> pointList = new();
     for (int i = 0; i < maxCo; i++) {
-        Console.WriteLine($"Row:{i}");
-        HashSet<(int, int)> set = new();
+        List<(int, int)> rangeList = new();
         foreach (var sbPair in pairList) {
-            // Console.WriteLine(sbPair.sPoint + ":" + sbPair.bPoint);
-
-            process(sbPair, i, ref set, beaconSet);
+            processRange(sbPair, i, ref rangeList, beaconSet);
         }
-        for (int j = 0; j <= maxCo; j++) {
-            if (!beaconSet.Contains((j, i)) && !set.Contains((j, i))) {
-                Console.WriteLine((j, i));
-                pointList.Add((i, j));
+        //sort the list by first point
+        //merge the list
+        List<(int, int)> mergedList = sortAndMergeList(rangeList);
+        if (mergedList.Count > 1) {
+            Console.WriteLine($"Row: {i}");
+            foreach (var range in mergedList) {
+                Console.WriteLine("Range:" + range);
             }
         }
     }
 
-    Console.WriteLine($"{pointList[0].Item1}:{pointList[0].Item2}\t");
-    Console.WriteLine(pointList.Count);
     return -1;
+}
+
+List<(int, int)> sortAndMergeList(List<(int, int)> rangeList) {
+    rangeList.Sort(Comparer<(int, int)>.Create((a, b) => {
+        return a.CompareTo(b);
+    }));
+    //merge sorted range
+    /*
+        -------------
+            ------
+              --------------
+
+    */
+    List<(int, int)> result = new List<(int, int)>();
+    result.Add(rangeList[0]);
+    for (int i = 1; i < rangeList.Count; i++) {
+        var prevRange = result[result.Count - 1];
+        var currRange = rangeList[i];
+        if (currRange.Item1 <= prevRange.Item2) {
+            prevRange.Item2 = Math.Max(prevRange.Item2, currRange.Item2);
+            result[result.Count - 1] = prevRange;
+        } else {
+            result.Add(currRange);
+        }
+    }
+    return result;
 }
 
 void process(SBPair sbPair, int yTarget, ref HashSet<(int, int)> set, HashSet<(int, int)> beaconSet) {
@@ -145,6 +168,32 @@ void process(SBPair sbPair, int yTarget, ref HashSet<(int, int)> set, HashSet<(i
             set.Add(anotherPoint);
         }
     }
+}
+
+void processRange(SBPair sbPair, int yTarget, ref List<(int, int)> rangeList, HashSet<(int, int)> beaconSet) {
+
+    int mDist = getDist(sbPair.sPoint, sbPair.bPoint);
+    //vertical expansion
+    var upPoint = addPoint(sbPair.sPoint, (0, mDist), true);
+    var lowPoint = addPoint(sbPair.sPoint, (0, mDist), false);
+    // Console.WriteLine($"Sensor: {sbPair.sPoint} Dist: {mDist} Up: {upPoint} Low: {lowPoint}");
+
+    //check if yTarget,sBeacon.X lies on upPoint - lowPoint
+    // dist between upPoint, lowPoint = dist between upPoint, targetPoint + dist between targetPoint, lowPoint
+    var targetPoint = (sbPair.sPoint.Item1, yTarget);
+    int upDist = getDist(upPoint, targetPoint);
+    int lowDist = getDist(targetPoint, lowPoint);
+    if (getDist(upPoint, lowPoint) != (upDist + lowDist)) {
+        return;
+    }
+
+    //cover length is going to be minimum of upDist and lowDist
+    int distFromTarget = upDist < lowDist ? upDist : lowDist;
+    int cont = 1 + ((distFromTarget) * 2);
+
+    int leftPt = targetPoint.Item1 - (cont / 2);
+    int rightPt = targetPoint.Item1 + (cont / 2);
+    rangeList.Add((leftPt, rightPt));
 }
 
 (int, int) addPoint((int, int) p1, (int, int) p2, bool isSubtract) {
