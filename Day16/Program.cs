@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 using Util;
 
-List<string> inputList = FileUtil.ReadFile("./testdata.txt");
+List<string> inputList = FileUtil.ReadFile("./data.txt");
 
 /*
     what is the most pressure you could release?
@@ -13,8 +13,10 @@ List<string> inputList = FileUtil.ReadFile("./testdata.txt");
     1 min to follow any tunnel from 1 valve to another
 */
 Regex rx = new Regex(@"Valve (\w{2}) has flow rate=(\d*); tunnel[s]* lead[s]* to valve[s]* ([\w{2}[,\s]*)");
-Dictionary<string, int> frMap = new();
-Dictionary<string, List<string>> tvMap = new();
+Dictionary<string, int> flowMap = new();
+Dictionary<string, List<string>> adjList = new();
+Dictionary<string, int> idxMap = new();
+int i = 0;
 var startValve = "";
 foreach (string input in inputList) {
     Match match = rx.Match(input);
@@ -22,65 +24,123 @@ foreach (string input in inputList) {
     if (startValve == "") {
         startValve = valveStr;
     }
-    frMap[valveStr] = Convert.ToInt32(match.Groups[2].Value);
+    flowMap[valveStr] = Convert.ToInt32(match.Groups[2].Value);
 
     //tunnel to valve map
-    if (!tvMap.ContainsKey(valveStr)) {
-        tvMap[valveStr] = new List<string>();
+    if (!adjList.ContainsKey(valveStr)) {
+        adjList[valveStr] = new List<string>();
     }
     var valveMapStr = match.Groups[3].Value;
     var valveArr = valveMapStr.Split(",");
     foreach (string valve in valveArr) {
         string tempValve = valve.Trim();
 
-        tvMap[valveStr].Add(tempValve);
+        adjList[valveStr].Add(tempValve);
     }
+
+    idxMap.Add(valveStr, i++);
 }
-Console.WriteLine(part1(startValve, frMap, tvMap));
+
+int?[,] adjMatrix = new int?[inputList.Count, inputList.Count];
+int[] flowIdxMap = new int[inputList.Count];
+foreach (var key in adjList.Keys) {
+    foreach (var val in adjList[key]) {
+        adjMatrix[idxMap[key], idxMap[val]] = 1;
+    }
+    flowIdxMap[idxMap[key]] = flowMap[key];
+}
+
+Console.WriteLine(part1(idxMap, adjMatrix, flowIdxMap));
 
 /*
-flowRate(valve, timeLeft)
-    if(timeLeft <= 0) 
-        return 0;
-    
-    foreach valve 
-        tempTime
-        flowRate()
-        tempTime
 */
-int part1(string startValve, Dictionary<string, int> frMap, Dictionary<string, List<string>> tvMap) {
-    int step = 1;
-    HashSet<string> visited = new();
-    return frRec(startValve, 30, frMap, tvMap, visited, step);
+int part1(Dictionary<string, int> idMap, int?[,] adjMatrix, int[] flowIdxMap) {
+    //find all pair shortest path
+    floydWarshall(adjMatrix);
+    // for (int i = 0; i < adjMatrix.GetLength(0); i++) {
+    //     for (int j = 0; j < adjMatrix.GetLength(1); j++) {
+    //         if (adjMatrix[i, j] == null) {
+    //             Console.Write("z\t");
+    //             continue;
+    //         }
+    //         Console.Write($"{adjMatrix[i, j]}\t");
+    //     }
+    //     Console.WriteLine();
+    // }
+
+    //find max product using dfs
+    HashSet<int> visited = new();
+    List<int> debug = new List<int>();
+    return solveRec(adjMatrix, flowIdxMap, 0, 30, visited, debug);
 }
 
-int frRec(string valve, int timeLeft, Dictionary<string, int> frMap, Dictionary<string, List<string>> tvMap, HashSet<string> visited, int step) {
-    //exit condition
-    if (timeLeft <= 0) {
-        return 0;
-    }
-    Console.WriteLine($"At Valve:{valve}, Time left: {timeLeft}");
-    //recurse
-    //take it
-    int maxFlow = int.MinValue;
-    if (!visited.Contains(valve)) {
-        Console.WriteLine($"{step} - Take : {valve} - {frMap[valve]}");
-        visited.Add(valve);
-        int takeFlow = frRec(valve, timeLeft - 1, frMap, tvMap, visited, step + 1) + frMap[valve];
-        maxFlow = Math.Max(maxFlow, takeFlow);
-        visited.Remove(valve);
-    }
+int solveRec(int?[,] adjMatrix, int[] flowIdxMap, int currNode, int timeLeft, HashSet<int> visited, List<int> debug) {
+    visited.Add(currNode);
+    debug.Add(currNode);
 
-    //try the rest
-    foreach (string nextValve in tvMap[valve]) {
-        if (!visited.Contains(nextValve)) {
-            Console.WriteLine($"{step} - Take : {nextValve} - {frMap[nextValve]}");
-            visited.Add(nextValve);
-            int flow = frRec(nextValve, timeLeft - 2, frMap, tvMap, visited, step + 1) + frMap[nextValve];
-            maxFlow = Math.Max(maxFlow, flow);
-            visited.Remove(nextValve);
+
+    //recurse
+    //for every other node 
+    int product = 0;
+    int maxProduct = int.MinValue;
+    int nextNode = -1;
+    for (int i = 0; i < adjMatrix.GetLength(0); i++) {
+        //if no path then skip
+        //if flow rate is 0 no need to got there
+        if (i == currNode || adjMatrix[currNode, i] == null || flowIdxMap[i] == 0) {
+            continue;
+        }
+        //exit condition
+        if (visited.Contains(i)) {
+            continue;
+        }
+
+        int tempTimeLeft = timeLeft - (int)adjMatrix[currNode, i] - 1;  //additional 1 for opening
+        if (tempTimeLeft <= 0) {
+            continue;
+        }
+
+        product = (tempTimeLeft * flowIdxMap[i]) + solveRec(adjMatrix, flowIdxMap, i, tempTimeLeft, visited, debug);
+        if (product > maxProduct) {
+            maxProduct = product;
+            nextNode = i;
+
         }
     }
 
-    return maxFlow != int.MinValue ? maxFlow : 0;
+    visited.Remove(currNode);
+    debug.RemoveAt(debug.Count - 1);
+    Console.WriteLine();
+    foreach (var node in debug) {
+        Console.Write($"{node}\t");
+    }
+    Console.Write(currNode);
+    Console.WriteLine();
+    Console.WriteLine($"time left : {timeLeft}");
+    if (nextNode != -1)
+        Console.WriteLine($"{maxProduct}, next node taken {nextNode} at dist {adjMatrix[currNode, nextNode]}");
+    else
+        Console.WriteLine($"{maxProduct}, no next node");
+    return maxProduct != int.MinValue ? maxProduct : 0;
+}
+
+void floydWarshall(int?[,] adjMatrix) {
+    int cnt = adjMatrix.GetLength(0);
+    for (int i = 0; i < cnt; i++) {
+        adjMatrix[i, i] = 0;
+    }
+
+    for (int k = 0; k < cnt; k++) {
+        for (int i = 0; i < cnt; i++) {
+            for (int j = 0; j < cnt; j++) {
+                if (adjMatrix[i, k] == null || adjMatrix[k, j] == null) {
+                    continue;
+                }
+
+                if (adjMatrix[i, j] == null || adjMatrix[i, k] + adjMatrix[k, j] < adjMatrix[i, j]) {
+                    adjMatrix[i, j] = adjMatrix[i, k] + adjMatrix[k, j];
+                }
+            }
+        }
+    }
 }
