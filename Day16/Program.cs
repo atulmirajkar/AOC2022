@@ -1,144 +1,127 @@
-﻿
-using System.ComponentModel;
+﻿using System.Text;
 using System.Text.RegularExpressions;
 
 using Util;
 
 List<string> inputList = FileUtil.ReadFile("./data.txt");
 
-/*
-    what is the most pressure you could release?
-    valves and tunnels
-    1 min to open a valve
-    1 min to follow any tunnel from 1 valve to another
-*/
 Regex rx = new Regex(@"Valve (\w{2}) has flow rate=(\d*); tunnel[s]* lead[s]* to valve[s]* ([\w{2}[,\s]*)");
-Dictionary<string, int> flowMap = new();
-Dictionary<string, List<string>> adjList = new();
+List<int> valveRate = new List<int>();
 Dictionary<string, int> idxMap = new();
-int i = 0;
-var startValve = "";
+Dictionary<int, string> revIdxMap = new();
+Dictionary<string, string[]> adjList = new Dictionary<string, string[]>();
+int idx = 0;
+
 foreach (string input in inputList) {
     Match match = rx.Match(input);
-    var valveStr = match.Groups[1].Value;
-    if (startValve == "") {
-        startValve = valveStr;
-    }
-    flowMap[valveStr] = Convert.ToInt32(match.Groups[2].Value);
 
-    //tunnel to valve map
-    if (!adjList.ContainsKey(valveStr)) {
-        adjList[valveStr] = new List<string>();
-    }
-    var valveMapStr = match.Groups[3].Value;
-    var valveArr = valveMapStr.Split(",");
-    foreach (string valve in valveArr) {
-        string tempValve = valve.Trim();
+    string valveName = match.Groups[1].Value;
+    int rate = Convert.ToInt32(match.Groups[2].Value);
+    string[] nextValveArr = match.Groups[3].Value.Trim().Split(",");
 
-        adjList[valveStr].Add(tempValve);
-    }
+    idxMap.Add(valveName, idx);
+    revIdxMap.Add(idx, valveName);
+    valveRate.Add(rate);
+    adjList.Add(valveName, nextValveArr);
 
-    idxMap.Add(valveStr, i++);
+    idx++;
 }
 
-int?[,] adjMatrix = new int?[inputList.Count, inputList.Count];
-int[] flowIdxMap = new int[inputList.Count];
+//we want to do floyd warshall 
+// create adj matrix
+int?[,] adjM = new int?[idx, idx];
 foreach (var key in adjList.Keys) {
     foreach (var val in adjList[key]) {
-        adjMatrix[idxMap[key], idxMap[val]] = 1;
+        adjM[idxMap[key], idxMap[val.Trim()]] = 1;
     }
-    flowIdxMap[idxMap[key]] = flowMap[key];
 }
 
-Console.WriteLine(part1(idxMap, adjMatrix, flowIdxMap));
+allPairShortestPath(adjM);
+HashSet<int> visited = new HashSet<int>();
+List<string> debug = new List<string>();
+Console.WriteLine(DFS(0, 30, debug));
+// for (int i = 0; i < idx; i++) {
+//     Console.WriteLine();
+//     for (int j = 0; j < idx; j++) {
+//         if (adjM[i, j] == null) {
+//             Console.Write("\t");
+//             continue;
+//         }
+//         Console.Write(adjM[i, j] + "\t");
+//     }
+// }
 
-/*
-*/
-int part1(Dictionary<string, int> idMap, int?[,] adjMatrix, int[] flowIdxMap) {
-    //find all pair shortest path
-    floydWarshall(adjMatrix);
-    // for (int i = 0; i < adjMatrix.GetLength(0); i++) {
-    //     for (int j = 0; j < adjMatrix.GetLength(1); j++) {
-    //         if (adjMatrix[i, j] == null) {
-    //             Console.Write("z\t");
-    //             continue;
-    //         }
-    //         Console.Write($"{adjMatrix[i, j]}\t");
-    //     }
-    //     Console.WriteLine();
-    // }
+//DFS starting from 0 index, neighbors in this case are all neighbors that have a non-zero and non-inf dist. also the flowrate != 0
+// we want to maximize sum of steps*mins
 
-    //find max product using dfs
-    HashSet<int> visited = new();
-    List<int> debug = new List<int>();
-    return solveRec(adjMatrix, flowIdxMap, 0, 30, visited, debug);
-}
+int DFS(int idx, int timeLeft, List<string> debug) {
+    //exit condition 
+    if (visited.Contains(idx) || timeLeft == 0) {
+        return 0;
+    }
 
-int solveRec(int?[,] adjMatrix, int[] flowIdxMap, int currNode, int timeLeft, HashSet<int> visited, List<int> debug) {
-    visited.Add(currNode);
-    debug.Add(currNode);
+    Console.WriteLine();
+    Console.WriteLine($"timeLeft -  {timeLeft}");
 
+    visited.Add(idx);
+    debug.Add(revIdxMap[idx]);
 
     //recurse
-    //for every other node 
-    int product = 0;
-    int maxProduct = int.MinValue;
-    int nextNode = -1;
-    for (int i = 0; i < adjMatrix.GetLength(0); i++) {
-        //if no path then skip
-        //if flow rate is 0 no need to got there
-        if (i == currNode || adjMatrix[currNode, i] == null || flowIdxMap[i] == 0) {
-            continue;
-        }
-        //exit condition
-        if (visited.Contains(i)) {
+    //for each neighbor
+    int maxGain = int.MinValue;
+    for (int j = 0; j < adjM.GetLength(0); j++) {
+        int flowRate = valveRate[j];
+        if ((idx == j) || (visited.Contains(j)) || adjM[idx, j] == null || adjM[idx, j] == 0 || flowRate == 0) {
             continue;
         }
 
-        int tempTimeLeft = timeLeft - (int)adjMatrix[currNode, i] - 1;  //additional 1 for opening
-        if (tempTimeLeft <= 0) {
+        int timeSpent = (int)adjM[idx, j]! + 1;
+        if (timeLeft - timeSpent <= 0) {
             continue;
         }
-
-        product = (tempTimeLeft * flowIdxMap[i]) + solveRec(adjMatrix, flowIdxMap, i, tempTimeLeft, visited, debug);
-        if (product > maxProduct) {
-            maxProduct = product;
-            nextNode = i;
-
-        }
+        Console.WriteLine(getDebug() + "\t" + revIdxMap[j]);
+        Console.WriteLine($"Pressure Released: {timeLeft} - {timeSpent} * {flowRate} = {(timeLeft - timeSpent) * flowRate}");
+        int gain = ((timeLeft - timeSpent) * flowRate) + DFS(j, timeLeft - timeSpent, debug);
+        maxGain = Math.Max(maxGain, gain);
     }
 
-    visited.Remove(currNode);
+    visited.Remove(idx);
     debug.RemoveAt(debug.Count - 1);
-    Console.WriteLine();
-    foreach (var node in debug) {
-        Console.Write($"{node}\t");
-    }
-    Console.Write(currNode);
-    Console.WriteLine();
-    Console.WriteLine($"time left : {timeLeft}");
-    if (nextNode != -1)
-        Console.WriteLine($"{maxProduct}, next node taken {nextNode} at dist {adjMatrix[currNode, nextNode]}");
-    else
-        Console.WriteLine($"{maxProduct}, no next node");
-    return maxProduct != int.MinValue ? maxProduct : 0;
+
+    int result = maxGain != int.MinValue ? maxGain : 0;
+    Console.WriteLine($"MaxGain for {getDebug()}\t{revIdxMap[idx]} is {result}");
+    return result;
 }
 
-void floydWarshall(int?[,] adjMatrix) {
-    int cnt = adjMatrix.GetLength(0);
-    for (int i = 0; i < cnt; i++) {
-        adjMatrix[i, i] = 0;
+string getDebug() {
+    StringBuilder sb = new();
+    foreach (string str in debug) {
+        if (sb.ToString() == "") {
+            sb.Append(str);
+            continue;
+        }
+        sb.Append("\t" + str);
+    }
+    return sb.ToString();
+}
+//floyd warshall
+void allPairShortestPath(int?[,] arr) {
+    int n = arr.GetLength(0);
+
+    // set arr[i,i] = 1
+    for (int i = 0; i < n; i++) {
+        arr[i, i] = 0;
     }
 
-    for (int k = 0; k < cnt; k++) {
-        for (int i = 0; i < cnt; i++) {
-            for (int j = 0; j < cnt; j++) {
-                if (adjMatrix[i, k] == null || adjMatrix[k, j] == null) {
+    for (int k = 0; k < n; k++) {
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+
+                if (arr[i, k] == null || arr[k, j] == null) {
                     continue;
                 }
-
-                if (adjMatrix[i, j] == null || adjMatrix[i, k] + adjMatrix[k, j] < adjMatrix[i, j]) {
-                    adjMatrix[i, j] = adjMatrix[i, k] + adjMatrix[k, j];
+                if (arr[i, j] == null || (arr[i, k] + arr[k, j] < arr[i, j])) {
+                    arr[i, j] = arr[i, k] + arr[k, j];
                 }
             }
         }
