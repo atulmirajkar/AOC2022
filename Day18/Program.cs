@@ -4,7 +4,7 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        List<string> inputList = FileUtil.ReadFile("data.txt");
+        List<string> inputList = FileUtil.ReadFile("testdata.txt");
 
         //we are given 1x1x1 cubes
         //we need to find how many surfaces are open
