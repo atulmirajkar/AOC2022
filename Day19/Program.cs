@@ -1,7 +1,8 @@
 ﻿using Util;
 using System.Collections.Generic;
 
-
+// ):%s/Blueprint \(\d*\): Each ore robot costs \(\d*\) ore. Each clay robot costs \(\d*\) ore. Each obsidian robot costs \(\d*\) ore and \(\d*\) clay. Eac:      h geode robot costs \(\d*\) ore and \(\d*\) obsidian./\1,\2,\3,\4,\5,\6,\7
+// 
 //you have 1 ore collecting robot   
 //it takes 1 minute to construct a robot
 //each robot can collect 1 of its resource type per minute
